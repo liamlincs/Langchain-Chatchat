@@ -219,12 +219,10 @@ def knowledge_base_page(api: ApiRequest):
         # 定义按钮的行为
         def on_button_click():
             try:
-                for root, dirs, files in os.walk(IMPORT_FILE_PATH):
+                fileCount = 0
+                for root, dirs, files in os.walk(os.path.join(IMPORT_FILE_PATH,kb)):
                     for file in files:
                         if file.lower().endswith(('.doc', '.docx', '.wps', '.pdf')):
-                            # 构建目标目录中的相对路径
-                            relative_path = os.path.relpath(root, IMPORT_FILE_PATH)
-                            # target_path = os.path.join(target_directory, relative_path)
                             target_path = os.path.join(KB_ROOT_PATH, kb, 'content')
 
                             # 如果目标目录不存在，则跳过，需要从界面上创建它
@@ -243,16 +241,19 @@ def knowledge_base_page(api: ApiRequest):
                                 text = parsed["content"]
                                 if text is None:
                                     shutil.copy2(source_file_path, os.path.join(target_path, file))
+                                    fileCount += 1
                                     logger.info(f'Tika无法提取,源文件拷贝: {source_file_path}')
                                     continue
                                 with open(target_file_path, 'w', encoding='utf-8') as txt_file:
                                     txt_file.write(text)
+                                fileCount += 1
                                 logger.info(f'提取并保存：{target_file_path}')
                             except Exception as e:
-                                logger.info(f'处理文件时出错：{source_file_path}')
+                                logger.error(f'处理文件时出错：{source_file_path}')
                                 logger.error(str(e))
                 # st.success("已成功导入文件到服务器知识库本地目录")
                 # st.toast(f"已成功导入文件到服务器知识库本地目录")
+                logger.info(f'提取文件数量：{fileCount}')
                 st.session_state['button_clicked'] = True
             except Exception as e:
                 st.error(e)
@@ -377,7 +378,7 @@ def knowledge_base_page(api: ApiRequest):
                 # 使用os.system来调用外部Python脚本
                 print(f"增量知识库 `{kb}` 中的文件")
                 expy = os.path.abspath(os.path.join(os.path.abspath(__file__), '..', '..', '..')) + os.sep + 'init_database.py'
-                cmd = 'python ' + expy + ' -i --import-file --kb-name ' + kb
+                cmd = 'python ' + expy + ' -i --kb-name ' + kb
                 print(cmd)
                 os.system(cmd)
 
